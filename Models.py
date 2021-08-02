@@ -35,19 +35,28 @@ class PredictiveNet():
           units=512,
           recurrent_dropout=0.2,
           return_sequences=True,
+          activation="sigmoid"
           # return_state=True
         ))
         self.model.add(tf.keras.layers.Dense(units=10))
+        self.lastPreactivation = None
         return
 
     def printw(self): # Debug log
         print(K.mean(self.model.layers[1].weights[0]))
         return
 
+    def getPreactivation(self, x):
+        MTemp = K.function([self.model.layers[0].input],
+                                  [self.model.layers[1].input])
+        stateVector = MTemp(x)
+        self.lastPreactivation = stateVector[0]
+        return self.lastPreactivation
+
     def EnergyCostLoss(self, y_true, y_pred):
         error = y_pred - y_true
-        lambda1 = 1
-        lambda2 = 1
-        return K.mean(K.square(error) + lambda1*K.mean(K.abs(y_pred))) + lambda2*K.mean(K.abs(self.model.layers[1].weights[0]))
-    
-    
+        lambda1 = 1.2
+        lambda2 = 0.1
+        lambda3 = 0.1
+        # preact = self.lastPreactivation
+        return K.mean(K.square(error) + lambda1*K.mean(K.abs(y_pred))) + lambda2*K.mean(K.abs(self.model.layers[0].weights[0])) + lambda3*K.mean(K.abs(self.model.layers[1].weights[0]))
